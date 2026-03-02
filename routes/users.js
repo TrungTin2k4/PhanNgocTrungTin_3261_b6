@@ -1,5 +1,8 @@
 var express = require("express");
 var router = express.Router();
+let bcrypt = require('bcrypt')
+let { userPostValidation, validateResult } =
+  require('../utils/validationHandler')
 
 let userModel = require("../schemas/users");
 
@@ -26,37 +29,41 @@ router.get("/:id", async function (req, res, next) {
   }
 });
 
-router.post("/", async function (req, res, next) {
-  try {
-    let newItem = new userModel({
-      username: req.body.username,
-      password: req.body.password, // không mã hoá
-      email: req.body.email,
-      fullName: req.body.fullName,
-      avatarUrl: req.body.avatarUrl,
-      status: req.body.status,
-      role: req.body.role,
-      loginCount: req.body.loginCount
-    });
+router.post("/", userPostValidation, validateResult,
+  async function (req, res, next) {
+    try {
+      let newItem = new userModel({
+        username: req.body.username,
+        password: req.body.password,
+        email: req.body.email,
+        fullName: req.body.fullName,
+        avatarUrl: req.body.avatarUrl,
+        status: req.body.status,
+        role: req.body.role,
+        loginCount: req.body.loginCount
+      });
 
-    await newItem.save();
+      await newItem.save();
 
-    // populate cho đẹp
-    let saved = await userModel
-      .findById(newItem._id)
-    res.send(saved);
-  } catch (err) {
-    res.status(400).send({ message: err.message });
-  }
-});
+      // populate cho đẹp
+      let saved = await userModel
+        .findById(newItem._id)
+      res.send(saved);
+    } catch (err) {
+      res.status(400).send({ message: err.message });
+    }
+  });
 
 router.put("/:id", async function (req, res, next) {
   try {
     let id = req.params.id;
-    let updatedItem = await userModel.findByIdAndUpdate(id, req.body, { new: true });
-
+    let updatedItem = await userModel.findOne({ _id: id, isDeleted: false })
     if (!updatedItem) return res.status(404).send({ message: "id not found" });
-
+    let keys = Object.keys(req.body);
+    for (const key of keys) {
+      updatedItem[key] = req.body[key];
+    }
+    await updatedItem.save();
     let populated = await userModel
       .findById(updatedItem._id)
     res.send(populated);
@@ -64,7 +71,6 @@ router.put("/:id", async function (req, res, next) {
     res.status(400).send({ message: err.message });
   }
 });
-
 router.delete("/:id", async function (req, res, next) {
   try {
     let id = req.params.id;
