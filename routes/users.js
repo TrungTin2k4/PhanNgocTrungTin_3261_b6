@@ -4,7 +4,7 @@ let bcrypt = require('bcrypt')
 let { userPostValidation, validateResult } =
   require('../utils/validationHandler')
 
-let userModel = require("../schemas/users");
+let userController = require("../controllers/users");
 
 
 router.get("/", async function (req, res, next) {
@@ -32,22 +32,16 @@ router.get("/:id", async function (req, res, next) {
 router.post("/", userPostValidation, validateResult,
   async function (req, res, next) {
     try {
-      let newItem = new userModel({
-        username: req.body.username,
-        password: req.body.password,
-        email: req.body.email,
-        fullName: req.body.fullName,
-        avatarUrl: req.body.avatarUrl,
-        status: req.body.status,
-        role: req.body.role,
-        loginCount: req.body.loginCount
-      });
-
-      await newItem.save();
-
+      let newItem = await userController.CreateAnUser(
+        req.body.username,
+        req.body.password,
+        req.body.email, 
+        req.body.role,
+        "", "",
+        false
+      )
       // populate cho đẹp
-      let saved = await userModel
-        .findById(newItem._id)
+      let saved = await userController.FindByID(newItem._id);
       res.send(saved);
     } catch (err) {
       res.status(400).send({ message: err.message });
