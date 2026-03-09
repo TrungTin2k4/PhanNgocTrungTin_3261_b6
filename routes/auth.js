@@ -54,6 +54,47 @@ router.post('/logout', checkLogin, function (req, res, next) {
   res.send("logout")
 })
 
+router.post('/change-password', checkLogin, async function (req, res, next) {
+  try {
+    let oldPassword = req.body.oldpassword || req.body.oldPassword;
+    let newPassword = req.body.newpassword || req.body.newPassword;
+
+    if (!oldPassword || !newPassword) {
+      res.status(400).send({
+        message: 'oldpassword va newpassword khong duoc de trong'
+      })
+      return;
+    }
+
+    let user = await userController.FindByID(req.userId);
+    if (!user) {
+      res.status(404).send({
+        message: 'user khong ton tai'
+      })
+      return;
+    }
+
+    let isOldPasswordCorrect = bcrypt.compareSync(oldPassword, user.password);
+    if (!isOldPasswordCorrect) {
+      res.status(400).send({
+        message: 'oldpassword khong dung'
+      })
+      return;
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.send({
+      message: 'doi mat khau thanh cong'
+    })
+  } catch (error) {
+    res.status(400).send({
+      message: error.message
+    })
+  }
+})
+
 
 module.exports = router;
 
